@@ -1,0 +1,8 @@
+import {Zip,ZipPassThrough,strToU8} from 'fflate';
+export type ZipEntry={name:string;open:()=>Promise<ReadableStream<Uint8Array>>};
+export function safePart(s:string){const v=s.normalize('NFKC').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/^[. ]+|[. ]+$/g,'').slice(0,100);return v||'未命名'}
+export function textStream(text:string){return new ReadableStream<Uint8Array>({start(c){c.enqueue(strToU8(text));c.close()}})}
+export function zipStream(entries:ZipEntry[]){let current:ReadableStreamDefaultReader<Uint8Array>|null=null;let stopped=false;
+ async function* generate(){let queue:Uint8Array[]=[];let failure:Error|null=null;const zip=new Zip((err,data)=>{if(err)failure=err;else if(data.length)queue.push(data)});try{for(const entry of entries){if(stopped)return;const file=new ZipPassThrough(entry.name);zip.add(file);for(const q of queue)yield q;queue=[];current=(await entry.open()).getReader();while(!stopped){const {value,done}=await current.read();if(done)break;file.push(value);if(failure)throw failure;for(const q of queue)yield q;queue=[]}current.releaseLock();current=null;if(stopped)return;file.push(new Uint8Array(0),true);for(const q of queue)yield q;queue=[]}zip.end();if(failure)throw failure;for(const q of queue)yield q}finally{await current?.cancel().catch(()=>{});zip.terminate()}}
+ const iterator=generate();return new ReadableStream<Uint8Array>({async pull(controller){try{const next=await iterator.next();if(next.done)controller.close();else controller.enqueue(next.value)}catch(e){controller.error(e)}},async cancel(){stopped=true;await current?.cancel().catch(()=>{});await iterator.return(undefined)}})
+}
