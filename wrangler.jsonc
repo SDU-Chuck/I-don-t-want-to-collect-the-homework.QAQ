@@ -17,7 +17,7 @@
   ],
   "vars": {
     "GITHUB_OWNER": "SDU-Chuck",
-    "GITHUB_HOMEWORK_REPO": "",
+    "GITHUB_HOMEWORK_REPO": "Store_the_assignment",
     "GITHUB_HOMEWORK_BRANCH": "main"
   }
 }
