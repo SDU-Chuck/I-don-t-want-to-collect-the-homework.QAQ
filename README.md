@@ -1,6 +1,6 @@
 # 课业集：网页收作业，GitHub 保存附件
 
-学生通过网页上传作业，服务端将附件写入私有 GitHub 仓库。网站代码可以保存在公开仓库。名单、任务和提交状态保存在 D1 数据库，附件不再依赖 R2。
+学生通过网页上传作业，服务端将附件写入私有 GitHub 仓库。网站代码保存在公开代码仓库，作业保存在另一个专用私有仓库。名单、任务和提交状态保存在 D1 数据库，附件不再依赖 R2。
 
 ## 已有功能
 
@@ -24,11 +24,11 @@ Cloudflare Workers 运行网站和接收上传。只公开 GitHub 代码仓库�
 
 ## 第一次配置
 
-1. 新建一个专门保存作业的**私有 GitHub 仓库**，创建时勾选添加 README，使默认分支已有一次提交。推荐默认分支 main；不要使用网站代码仓库保存作业。
-2. 在 GitHub 创建 fine-grained personal access token，只选择这个私有作业仓库，将 Repository permissions → Contents 设为 Read and write。无需授予代码仓库写入或账号管理员权限。设置有效期，到期后更新 Cloudflare Secret。
+1. 新建专门保存作业的 **Private** GitHub 仓库，并勾选 Add a README file。保留默认 main 分支即可。已有公开网站代码仓库继续保存代码，不存同学作业。
+2. 在 GitHub 创建 fine-grained personal access token，只选择这个私有作业仓库，将 Repository permissions → Contents 设为 Read and write。无需授予公开代码仓库访问权限，也无需账号管理员权限。设置有效期，到期后更新 Cloudflare Secret。
 3. 在 Cloudflare 创建 D1 数据库 classwork-db。将数据库 ID 填到 wrangler.jsonc 的 database_id。
-4. 同一配置文件的 vars 中填写 GITHUB_OWNER（仓库所属账号）、GITHUB_HOMEWORK_REPO（作业仓库名，不是完整链接）、GITHUB_HOMEWORK_BRANCH（通常 main）。这些是仓库标识，不是凭据。
-5. 在 Cloudflare Workers 连接网站代码的 GitHub 仓库。Worker 名称 classwork-collection；构建命令 npm run build；部署命令 npm run deploy。按控制台提示完成 GitHub App 授权。此方式不依赖本机 localhost OAuth 回调。
+4. 同一配置文件的 vars 中填写 GITHUB_OWNER（仓库所属账号）、GITHUB_HOMEWORK_REPO（作业仓库名，不是完整链接）、GITHUB_HOMEWORK_BRANCH（默认 main）。这些是仓库标识，不是凭据。
+5. 在 Cloudflare Workers 连接网站代码的 GitHub 仓库。Worker 名称 classwork-collection；构建命令 npm run build；部署命令 npm run deploy。按控制台提示完成 GitHub App 授权。Cloudflare 只连接公开网站代码仓库，不连接私有作业仓库，因此同学交作业不会触发网站构建。此方式不依赖本机 localhost OAuth 回调。
 6. 在 Worker 的 Settings → Variables and Secrets 添加三个 Secret：ADMIN_PASSWORD（至少12位）、SESSION_SECRET（至少32位随机字符）、GITHUB_TOKEN（第2步的凭据）。在 Cloudflare 中自行填写，不要发到聊天、提交进 GitHub，或填写到前端代码。保存后部署更改。
 7. 打开正式 HTTPS 网站地址的 /login，输入管理员密码，导入原始班级名单，创建任务并分享 /submit/... 链接。
 
@@ -85,4 +85,4 @@ GitHub 有 API 频率限制和仓库容量限制。每份附件下载会调用�
 
 ## 发布状态
 
-源码已改为 GitHub 私有仓库存储，需要真实私有仓库、服务端凭据和 D1 配置后才能上线。当前示例配置没有有效仓库和数据库 ID，不会冒充已部署成功。
+源码已改为 GitHub 私有仓库存储，需要真实私有仓库、服务端凭据和 D1 配置后才能上线。已确定使用现有公开仓库保存代码，另建私有仓库保存作业。配置已填写 GitHub 账号 SDU-Chuck；私有仓库名待用户提供，数据库 ID 仍为示例值。源码配置不代表已连接或已部署成功。
