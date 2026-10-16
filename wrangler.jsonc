@@ -11,7 +11,7 @@
     {
       "binding": "DB",
       "database_name": "classwork-db",
-      "database_id": "00000000-0000-4000-8000-000000000000",
+      "database_id": "eede1165-fcd4-4e23-83d6-936aaf82d99b",
       "migrations_dir": "drizzle"
     }
   ],
