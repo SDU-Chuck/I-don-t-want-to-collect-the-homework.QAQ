@@ -1,3 +1,4 @@
 # 仅用于本地开发。复制为 .dev.vars 后填写，不要提交 .dev.vars。
 ADMIN_PASSWORD="请替换为至少12位的管理员密码"
 SESSION_SECRET="请替换为至少32位的随机会话密钥"
+GITHUB_TOKEN="请填写仅授权私有作业仓库Contents读写权限的凭据"

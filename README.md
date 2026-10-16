@@ -1,53 +1,88 @@
-# 课业集：GitHub + Cloudflare 部署
+# 课业集：网页收作业，GitHub 保存附件
 
-## 功能
-- 数据结构、计算机网络作业收集；学生凭链接免登录提交。
-- PDF、PNG、JPG、JPEG、DOC、DOCX，每次最多5个文件、合计20MB。
-- Excel 名单导入；按学号和姓名统计已交、未交、待核对。
-- 管理员单独下载或打包 ZIP，含所有提交版本和提交情况 CSV。
-- 独立管理员密码登录、8小时有效会话、登录失败频率限制。
+学生通过网页上传作业，服务端将附件写入私有 GitHub 仓库。网站代码可以保存在公开仓库。名单、任务和提交状态保存在 D1 数据库，附件不再依赖 R2。
 
-## 仓库内容
+## 已有功能
 
-代码可以放在 GitHub；不要上传 .dev.vars、.wrangler、work、outputs、node_modules，也不要上传班级名单或作业附件。管理员密码和会话密钥存放在 Cloudflare 的 Secret 中。源码不包含名单，首次线上登录后从网页导入原始 Excel。
+- 数据结构、计算机网络作业收集，支持要求、截止时间、停止或恢复收集。
+- 学生凭独立作业链接免登录提交姓名、学号及附件。
+- 支持 PDF、PNG、JPG、JPEG、DOC、DOCX，每次最多5个文件，合计20MB。
+- Excel 名单导入；按学号和姓名比对已交、未交和待核对。重复提交不重复计算人数。
+- 管理员独立密码登录，查看提交、单独下载、打包 ZIP。ZIP 内附提交情况 CSV。
+- 附件经过服务端格式检查后保存到私有 GitHub 仓库，并保留所有提交版本。
+- 多人同时上传时基于最新仓库内容提交，不强制覆盖其他同学的作业。
 
-## 首次部署
+## 三个地方分别保存什么
 
-需要 Node.js 22.13+、npm，以及已登录的 GitHub 和 Cloudflare 账号。
+| 位置 | 保存内容 |
+| --- | --- |
+| 网站代码仓库，可公开 | 网页、后端代码、部署配置；不放密码和真实名单 |
+| 作业仓库，必须私有 | 同学的作业附件、每次提交的 submission.json 信息 |
+| Cloudflare D1 | 班级名单、任务、提交及文件索引 |
 
-1. 将项目源码推送到自己的 GitHub 仓库。
-2. 在 Cloudflare 创建 D1 数据库 `classwork-db` 和 R2 存储桶 `classwork-files`。如果账号提示开通或计费，请自行确认后继续。
-3. 将实际 D1 数据库 ID 填入 `wrangler.jsonc` 的 `database_id`。如果资源名称不同，同步修改 `database_name` 和 `bucket_name`。不要保留全零的示例 ID。
-4. 在 Cloudflare Workers 创建/导入 GitHub 仓库，Worker 名称使用 `classwork-collection`，生产分支选 `main`。
-5. 构建命令：`npm run build`。部署命令：`npm run deploy`。部署命令先应用 D1 迁移，再发布 Worker。构建身份需要对应 Worker、D1 和 R2 的操作权限；仅连接可信的生产分支，不为不可信 PR 执行生产部署。
-6. 在 Worker 的 Settings → Variables and Secrets 添加两个 Secret：`ADMIN_PASSWORD`（至少12位）与 `SESSION_SECRET`（至少32位随机字符）。请在 Cloudflare 中自行输入，不要发送到聊天或写进源码。更新 Secret 后按界面要求部署更改。
-7. 打开 Worker 的 HTTPS 地址，进入 `/login`，用设置的管理员密码登录。没有注册入口，只有一个管理员。
-8. 导入29人班级名单，新建收集，将每项任务的 `/submit/...` 链接发给同学。
+Cloudflare Workers 运行网站和接收上传。只公开 GitHub 代码仓库或启用 GitHub Pages，不会运行本项目的上传接口。仓库和 Workers 之间的写入凭据只在服务端使用，不交给学生浏览器。
 
-GitHub 后续推送由 Cloudflare Workers Builds 自动构建部署。当前项目不再依赖 Sites 或 ChatGPT 登录，也不使用 GitHub Pages。
+## 第一次配置
 
-官方文档：
+1. 新建一个专门保存作业的**私有 GitHub 仓库**，创建时勾选添加 README，使默认分支已有一次提交。推荐默认分支 main；不要使用网站代码仓库保存作业。
+2. 在 GitHub 创建 fine-grained personal access token，只选择这个私有作业仓库，将 Repository permissions → Contents 设为 Read and write。无需授予代码仓库写入或账号管理员权限。设置有效期，到期后更新 Cloudflare Secret。
+3. 在 Cloudflare 创建 D1 数据库 classwork-db。将数据库 ID 填到 wrangler.jsonc 的 database_id。
+4. 同一配置文件的 vars 中填写 GITHUB_OWNER（仓库所属账号）、GITHUB_HOMEWORK_REPO（作业仓库名，不是完整链接）、GITHUB_HOMEWORK_BRANCH（通常 main）。这些是仓库标识，不是凭据。
+5. 在 Cloudflare Workers 连接网站代码的 GitHub 仓库。Worker 名称 classwork-collection；构建命令 npm run build；部署命令 npm run deploy。按控制台提示完成 GitHub App 授权。此方式不依赖本机 localhost OAuth 回调。
+6. 在 Worker 的 Settings → Variables and Secrets 添加三个 Secret：ADMIN_PASSWORD（至少12位）、SESSION_SECRET（至少32位随机字符）、GITHUB_TOKEN（第2步的凭据）。在 Cloudflare 中自行填写，不要发到聊天、提交进 GitHub，或填写到前端代码。保存后部署更改。
+7. 打开正式 HTTPS 网站地址的 /login，输入管理员密码，导入原始班级名单，创建任务并分享 /submit/... 链接。
+
+服务端每次上传/下载请求都会检查仓库是否私有；仓库公开、已归档、凭据失效、初始化分支不存在时，会拒绝操作并给出提示。自动检查通过不代表线上仓库连接已通过，仍需实际配置后做一次测试提交。
+
+官方接口文档：
+- https://docs.github.com/en/rest/git/blobs
+- https://docs.github.com/en/rest/git/trees
+- https://docs.github.com/en/rest/git/refs
 - https://developers.cloudflare.com/workers/ci-cd/builds/
-- https://developers.cloudflare.com/workers/ci-cd/builds/configuration/
 
-## 本地运行
+## 作业在 GitHub 中的目录
+
+```
+homework/
+  <收集任务编号>/
+    <提交编号>/
+      01-作业.pdf
+      02-截图.png
+      submission.json
+```
+
+submission.json 保存姓名、学号、任务、提交时间及附件索引。每次提交的附件和说明会在一次仓库提交中一起归档。D1 负责网站中的查询和统计；它不会在丢失后自动从仓库恢复。若附件归档后数据库写入失败，页面不会假报成功；文件仍保留在私有仓库，可按提交编号核查。重复点击重试不会重复计入已交人数。
+
+附件按 Git blob 哈希读取，因此重新提交不会让旧提交的下载链接变成新内容。切换作业仓库后，已有记录不会自动迁移。旧 R2 附件也不会被自动搬运或删除，需单独迁移。
+
+## 本地运行与验证
+
+要求 Node.js 22.13+ 和 npm。
 
 ```sh
 npm run install:ci
 npm run build
-```
-
-将 `.dev.vars.example` 复制为 `.dev.vars`，设置自己的测试密码和随机会话密钥。首次创建本地数据库时依次执行：
-
-```sh
 npx wrangler d1 migrations apply DB --local --config wrangler.jsonc --persist-to .wrangler/state
 npm run dev
 ```
 
-已有旧版本地数据库不要重复执行已经应用过的 SQL。应只执行尚未应用的迁移，例如本次新增的 `drizzle/0002_organic_agent_brand.sql`。旧版 Wrangler 手动 execute 的迁移不会自动登记到 migrations 表中；生产应从全新的 D1 数据库开始，并统一使用 migrations apply。
+复制 .dev.vars.example 为 .dev.vars 并填写本地测试 Secret；在 wrangler.jsonc 填写私有测试仓库标识。使用与正式班级分开的测试仓库。该配置会真的把测试附件写到配置的 GitHub 仓库，不包含假存储降级。
+
+旧版手工 execute 的本地迁移可能未登记迁移表，不应重复执行；已有本地数据库按实际迁移记录处理。线上首次部署使用新 D1 数据库。
+
+```sh
+npm run test:storage
+npm run check
+```
+
+存储测试使用模拟 GitHub 接口，检查二进制完整性、拒绝公开仓库、并发写入冲突、跨仓库读取拒绝及错误中不泄露凭据；不会上传真实作业。
+
+## 运行边界
+
+GitHub 有 API 频率限制和仓库容量限制。每份附件下载会调用一次 GitHub 接口，整班 ZIP 的请求数量还受 Workers 当前套餐子请求限额约束；附件很多时应核对实际部署套餐。仓库请求过于频繁时，提交页面保留姓名、学号和文件，可稍后重试。
+
+删除仓库当前文件不会自动清除 Git 历史中的旧附件；本项目保留历史，不提供彻底清除历史的功能。请按班级或学期使用独立私有仓库。
 
 ## 发布状态
 
-项目已适配独立 Cloudflare 部署。仓库连接、真实 D1/R2 配置以及正式上线须以实际账号中的操作结果为准，不能仅凭构建成功认定已上线。
-
-本地上传记录与名单不会自动迁移到生产。请在生产重新导入名单。管理员会话不接受客户端伪造的 ChatGPT 身份请求头。密码变更时也应轮换 SESSION_SECRET，以使旧会话失效。
+源码已改为 GitHub 私有仓库存储，需要真实私有仓库、服务端凭据和 D1 配置后才能上线。当前示例配置没有有效仓库和数据库 ID，不会冒充已部署成功。

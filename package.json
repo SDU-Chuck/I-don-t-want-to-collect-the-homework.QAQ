@@ -13,7 +13,9 @@
     "lint": "eslint . --ignore-pattern dist --ignore-pattern .next",
     "db:generate": "drizzle-kit generate",
     "db:migrate": "wrangler d1 migrations apply DB --remote",
-    "deploy": "node scripts/deploy-cloudflare.mjs"
+    "deploy": "node scripts/deploy-cloudflare.mjs",
+    "test:storage": "node --test tests/github-storage.test.mjs",
+    "check": "tsc --noEmit"
   },
   "dependencies": {
     "@base-ui/react": "^1.7.0",
