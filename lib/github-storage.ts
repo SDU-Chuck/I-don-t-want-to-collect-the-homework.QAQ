@@ -22,7 +22,7 @@ export class GitHubHomeworkStorage {
  private headers(raw=false){return {'Accept':raw?'application/vnd.github.raw+json':'application/vnd.github+json','Authorization':'Bearer '+this.config.token,'X-GitHub-Api-Version':'2026-03-10','User-Agent':'classwork-collection','Content-Type':'application/json'}}
  private async api(path:string,method='GET',body?:unknown,raw=false):Promise<Response>{
   const request=this.request;
-  let r:Response;try{r=await request(this.root()+path,{method,headers:this.headers(raw),redirect:'error',body:body instanceof ReadableStream?body:body===undefined?undefined:JSON.stringify(body)} as RequestInit)}catch(e){const detail=(e instanceof Error?e.message:'Unknown transport error').replaceAll(this.config.token,'[redacted]').replace(/(?:github_pat_|gh[pousr]_)[A-Za-z0-9_]+/g,'[redacted]').slice(0,300);console.error('GitHub transport failure',{method,path,detail});throw new GitHubStorageError('连接作业仓库失败，请稍后重试。')}
+  let r:Response;try{r=await request(this.root()+path,{method,headers:this.headers(raw),redirect:'manual',body:body instanceof ReadableStream?body:body===undefined?undefined:JSON.stringify(body)} as RequestInit)}catch(e){const detail=(e instanceof Error?e.message:'Unknown transport error').replaceAll(this.config.token,'[redacted]').replace(/(?:github_pat_|gh[pousr]_)[A-Za-z0-9_]+/g,'[redacted]').slice(0,300);console.error('GitHub transport failure',{method,path,detail});throw new GitHubStorageError('连接作业仓库失败，请稍后重试。')}
   if(!r.ok){await r.body?.cancel().catch(()=>{});throw new GitHubApiError(r.status)}return r;
  }
  private async data(path:string,method='GET',body?:unknown):Promise<any>{return (await this.api(path,method,body)).json()}
