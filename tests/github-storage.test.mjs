@@ -26,4 +26,6 @@ test('empty repository has an actionable initialization error',async()=>{const m
 test('repository mismatch rejects before network access',async()=>{const m=model();await assert.rejects(new GitHubHomeworkStorage(config,m.fetcher).read('github:someone/else:'+sha(4)),/迁移/);assert.equal(m.calls.length,0)});
 test('repeated conflicts stop safely without force pushing',async()=>{const m=model({conflicts:10});await assert.rejects(new GitHubHomeworkStorage(config,m.fetcher).saveSubmission(aid,sid,[new File(['a'],'a.pdf')],{}),GitHubStorageError);assert.equal(m.calls.filter(c=>c.method==='PATCH').length,4);assert(m.tree['existing.txt']);assert(m.tree['another-student.pdf'])});
 test('invalid branch and missing token fail closed',()=>{for(const change of [{branch:'../main'},{branch:'a//b'},{token:''}])assert.throws(()=>new GitHubHomeworkStorage({...config,...change}),GitHubStorageError)});
+test('request functions keep their original receiver semantics in Workers',async()=>{const m=model();const request=function(...args){assert.equal(this,undefined);return m.fetcher(...args)};await new GitHubHomeworkStorage(config,request).ensurePrivate();assert.equal(m.calls.length,1)});
+
 

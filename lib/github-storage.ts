@@ -21,7 +21,8 @@ export class GitHubHomeworkStorage {
  private root(){return 'https://api.github.com/repos/'+encodeURIComponent(this.config.owner)+'/'+encodeURIComponent(this.config.repo)}
  private headers(raw=false){return {'Accept':raw?'application/vnd.github.raw+json':'application/vnd.github+json','Authorization':'Bearer '+this.config.token,'X-GitHub-Api-Version':'2026-03-10','User-Agent':'classwork-collection','Content-Type':'application/json'}}
  private async api(path:string,method='GET',body?:unknown,raw=false):Promise<Response>{
-  let r:Response;try{r=await this.request(this.root()+path,{method,headers:this.headers(raw),redirect:'error',body:body instanceof ReadableStream?body:body===undefined?undefined:JSON.stringify(body)} as RequestInit)}catch{throw new GitHubStorageError('连接作业仓库失败，请稍后重试。')}
+  const request=this.request;
+  let r:Response;try{r=await request(this.root()+path,{method,headers:this.headers(raw),redirect:'error',body:body instanceof ReadableStream?body:body===undefined?undefined:JSON.stringify(body)} as RequestInit)}catch{throw new GitHubStorageError('连接作业仓库失败，请稍后重试。')}
   if(!r.ok){await r.body?.cancel().catch(()=>{});throw new GitHubApiError(r.status)}return r;
  }
  private async data(path:string,method='GET',body?:unknown):Promise<any>{return (await this.api(path,method,body)).json()}
@@ -43,3 +44,4 @@ export class GitHubHomeworkStorage {
  }
  async read(key:string):Promise<ReadableStream<Uint8Array>>{try{const sha=this.sha(key);await this.ensurePrivate();const r=await this.api('/git/blobs/'+sha,'GET',undefined,true);if(!r.body)throw Error('Missing file');return r.body as ReadableStream<Uint8Array>}catch(e){this.fail(e)}}
 }
+
