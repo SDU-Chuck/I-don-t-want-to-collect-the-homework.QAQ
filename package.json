@@ -15,6 +15,7 @@
     "db:migrate": "wrangler d1 migrations apply DB --remote",
     "deploy": "node scripts/deploy-cloudflare.mjs",
     "test:storage": "node --test tests/github-storage.test.mjs",
+    "test:schedule": "node --test tests/assignment-schedule.test.mjs",
     "check": "tsc --noEmit"
   },
   "dependencies": {

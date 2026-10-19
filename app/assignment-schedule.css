@@ -1,0 +1,12 @@
+.schedule-summary{font-size:13px;color:#8d7763;padding:12px 15px;background:#f7f1e8;border:1px solid #e9ddce;border-radius:5px;margin-bottom:16px;display:flex;gap:8px 22px;flex-wrap:wrap}
+.schedule-summary strong{font-weight:500;color:#86523e}
+.schedule-editor{padding:20px;border:1px solid #d8bea7;border-left:3px solid #89181b;border-radius:5px;background:#fcf7ef;margin:18px 0}
+.schedule-editor h3{font-size:17px;color:#643b2e;margin:0 0 8px}
+.schedule-editor>p{font-size:13px;color:#89705c;line-height:1.8}
+.schedule-editor>label:not(.schedule-unlimited){max-width:360px;margin:15px 0}
+.schedule-editor input:disabled{background:#efebe5;color:#a59b8e}
+.schedule-editor .schedule-unlimited{display:flex;align-items:center;gap:9px;width:fit-content;cursor:pointer;margin:15px 0;color:#70533e}
+.schedule-unlimited input{width:17px;height:17px;padding:0;margin:0;accent-color:#89181b;flex-shrink:0}
+.schedule-buttons{display:flex;gap:10px;flex-wrap:wrap;margin-top:18px}
+.schedule-result{font-size:13px;padding:10px 14px;color:#53694c;background:#edf3e9;border:1px solid #dce8d4;border-radius:5px;margin:12px 0}
+@media(max-width:700px){.schedule-editor{padding:17px}.schedule-summary{font-size:12px;flex-direction:column;gap:4px}.schedule-buttons .primary{flex:1}.schedule-editor>p{font-size:12px}}
